@@ -38,6 +38,7 @@ ogr2ogr -overwrite -s_srs EPSG:4326 -t_srs $proj -f 'ESRI Shapefile' \
         -lco ENCODING=UTF-8 all_roads_proj.shp all_roads.shp
 
 # Rasterize
+resolution=250
 gdal_rasterize -tap -burn 1 \
                -co "COMPRESS=LZW" -co "PREDICTOR=2" -co "BIGTIFF=YES" -ot Byte \
                -a_nodata 255 \
