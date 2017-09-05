@@ -12,7 +12,8 @@
 # Variables
 #proj="EPSG:102022" # Africa_Albers_Equal_Area_Conic, see http://epsg.io
 #This epsg code is not recognized by gdal so we use WKT definition
-proj="../proj.prj" # Path to file with Well Known Text (WKT) projection definition
+#proj="../proj.prj" # Path to file with Well Known Text (WKT) projection definition
+proj="EPSG:3395"
 resolution=30 # 30m resolution
 
 # ===========================
@@ -27,7 +28,8 @@ mkdir -p results
 cd results
 
 # Download OSM data from Geofabrik
-url="http://download.geofabrik.de/africa-latest.osm.pbf"
+# url="http://download.geofabrik.de/africa-latest.osm.pbf"
+url="http://download.geofabrik.de/south-america-latest.osm.pbf"
 wget -O country.osm.pbf $url
 osmconvert country.osm.pbf -o=country.o5m
 

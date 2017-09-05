@@ -14,7 +14,7 @@ raster includes all types of roads (highway=*) provided by OSM. The
 raster of roads has the following characteristics:
 
 Date: July 2017. Resolution: 30m. Size: 568.56 MB. Format: GeoTIFF. Data type:
-Byte. No-data value: 255. Projection: EPSG:102022 (Africa Albers Equal
+Byte. No-data value: 255. Projection: ESRI:102022 (Africa Albers Equal
 Area Conic).
 
 ## Download
