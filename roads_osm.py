@@ -15,30 +15,35 @@ import urllib
 
 # Variables
 # Well Known Text (WKT) projection definition
-continent_list = ["Africa", "South_America", "Central_America",
-                  "North_America"]
-proj_file = ["proj102022.prj", "proj102033.prj", "", ""]
+continent = ["Africa", "South_America", "Central_America",
+             "Mexico", "South_Asia", "Australia"]
+proj = ["proj102022.prj", "proj102033.prj", "proj102008.prj",
+        "proj102008.prj", "proj102028.prj", "proj102028.prj"]
+
+# Original working directory
+owd = os.getcwd()
+
+# Extents
+ext_South_America = (-92, -56, -31, 15)
+
 resolution = 30
 res_str = str(resolution) + " " + str(resolution)
 
 # Select continent
-i = 0
-continent = continent_list[i]
+i = 2
 
 # Input projection
 inproj = osr.SpatialReference()
 inproj.ImportFromEPSG(4326)
 
 # Output projection
-with open(proj_file[i], 'r') as f:
-    proj = f.read()
+with open(proj[i], 'r') as f:
+    proj_WKT = f.read()
 outproj = osr.SpatialReference()
-outproj.ImportFromWkt(proj)
+outproj.ImportFromWkt(proj_WKT)
 
 # Points coordinates
-x_ll, y_ll = -92, -56.0
-x_ur, y_ur = -31, 15.0
-extent = (x_ll, y_ll, x_ur, y_ur)
+extent = ext_South_America
 
 
 # Convert extent
@@ -79,12 +84,12 @@ extent_str = " ".join(map(str, extent_proj))
 print("Roads from OSM")
 
 # New directory for results
-results_dir = "results_" + continent
+results_dir = "results_" + continent[i]
 os.makedirs(results_dir)
 os.chdir(results_dir)
 # Download OSM data from Geofabrik
 # url="http://download.geofabrik.de/africa-latest.osm.pbf"
-url = "http://download.geofabrik.de/south-america-latest.osm.pbf"
+url = "http://download.geofabrik.de/central-america-latest.osm.pbf"
 urllib.urlretrieve(url, "country.osm.pbf")
 os.system("osmconvert country.osm.pbf -o=country.o5m")
 
@@ -97,13 +102,14 @@ cmd = "ogr2ogr -overwrite -skipfailures -f 'ESRI Shapefile' -progress \
 os.system(cmd)
 
 # Reproject
-os.system("ogr2ogr -overwrite -s_srs EPSG:4326 -t_srs $proj -f 'ESRI Shapefile' \
+proj_file = os.path.join(owd, proj[i])
+os.system("ogr2ogr -overwrite -s_srs EPSG:4326 -t_srs " + proj_file + " -f 'ESRI Shapefile' \
         -lco ENCODING=UTF-8 all_roads_proj.shp all_roads.shp")
 
 # Rasterize
+# -te " + extent_str + " \
 cmd = "gdal_rasterize -tap -burn 1 \
         -co 'COMPRESS=LZW' -co 'PREDICTOR=2' -co 'BIGTIFF=YES' -ot Byte \
-        -te " + extent_str + " \
         -a_nodata 255 \
         -tr " + res_str + " \
         -l all_roads_proj all_roads_proj.shp all_roads.tif"
