@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # ==============================================================================
 # author          :Ghislain Vieilledent
@@ -10,109 +11,87 @@
 # ==============================================================================
 
 import os
-from osgeo import ogr, osr
-import urllib
+# import urllib
 
-# Variables
+# Areas of interest
+area = ["Africa", "Asia", "Australia", "Mexico", "South_America"]
 # Well Known Text (WKT) projection definition
-continent = ["Africa", "South_America", "Central_America",
-             "Mexico", "South_Asia", "Australia"]
-proj = ["proj102022.prj", "proj102033.prj", "proj102008.prj",
-        "proj102008.prj", "proj102028.prj", "proj102028.prj"]
-
+proj = ["proj102022.prj", "proj102028.prj", "proj6643.prj",
+        "proj102008.prj", "proj102033.prj"]
+# Extents
+ext_Africa = (-18, -27, 52, 16)
+ext_Asia = (68, -16, 145, 29)
+ext_Australia = (143, -46, 170, 1)
+ext_Mexico = (-114, 6, -57, 29)
+ext_South_America = (-84, -36, -32, 12)
+extent = [ext_Africa, ext_Asia, ext_Australia, ext_Mexico, ext_South_America]
 # Original working directory
 owd = os.getcwd()
 
-# Extents
-ext_South_America = (-92, -56, -31, 15)
-
-resolution = 30
-res_str = str(resolution) + " " + str(resolution)
-
-# Select continent
-i = 2
-
-# Input projection
-inproj = osr.SpatialReference()
-inproj.ImportFromEPSG(4326)
-
-# Output projection
-with open(proj[i], 'r') as f:
-    proj_WKT = f.read()
-outproj = osr.SpatialReference()
-outproj.ImportFromWkt(proj_WKT)
-
-# Points coordinates
-extent = ext_South_America
+# Download planet data from OpenStreetMap (version of 11/09/2017)
+# url = "https://planet.osm.org/pbf/planet-170911.osm.pbf"
+# urllib.urlretrieve(url, "planet.osm.pbf")
+# os.system("wget https://planet.osm.org/pbf/planet-170911.osm.pbf")
 
 
-# Convert extent
-def convertExtent(extent, inproj, outproj):
+# Function roads_osm
+def roads_osm(planet, area, extent, proj, res):
+    """Function to extract roads from OpenStreetMap planet data and
+    rasterize the data.
 
-    # Coordinates from extent
-    xmin, ymin, xmax, ymax = extent[0], extent[1], extent[2], extent[3]
+    :param planet: Path to planet .osm.pbf file
 
-    # Create points from coordinates
-    point_ll = ogr.Geometry(ogr.wkbPoint)
-    point_ll.AddPoint(xmin, ymin)
-    point_ur = ogr.Geometry(ogr.wkbPoint)
-    point_ur.AddPoint(xmax, ymax)
+    :param area: Area of interest. Will be used to create a new directory.
 
-    # Transformation
-    ct = osr.CoordinateTransformation(inproj, outproj)
-    # Transform points
-    point_ll.Transform(ct)
-    point_ur.Transform(ct)
+    :param extent: Extent (xmin, ymin, xmax, ymax) used to extract OSM
+    data with osmconvert.
 
-    # Extent
-    extent_proj = (point_ll.GetX(), point_ll.GetY(),
-                   point_ur.GetX(), point_ur.GetY())
+    :param proj: Projection used to reproject road data.
 
-    # Return
-    return(extent_proj)
+    :param res: Resolution used to rasterize roads.
 
+    """
 
-# New extent
-extent_proj = convertExtent(extent, inproj, outproj)
-extent_str = " ".join(map(str, extent_proj))
+    # Message
+    print("Roads from OSM")
 
-# ===========================
-# Roads from Open Street Map
-# ===========================
+    # New directory for results
+    results_dir = "results_" + area
+    os.makedirs(results_dir)
+    os.chdir(results_dir)
 
-# Message
-print("Roads from OSM")
+    # Call to osmconvert with box
+    box = ",".join(map(str, extent))
+    os.system("osmconvert " + planet + " -b=" + box + " -o=area.o5m")
 
-# New directory for results
-results_dir = "results_" + continent[i]
-os.makedirs(results_dir)
-os.chdir(results_dir)
-# Download OSM data from Geofabrik
-# url="http://download.geofabrik.de/africa-latest.osm.pbf"
-url = "http://download.geofabrik.de/central-america-latest.osm.pbf"
-urllib.urlretrieve(url, "country.osm.pbf")
-os.system("osmconvert country.osm.pbf -o=country.o5m")
+    # Resolution as string
+    res_str = str(res) + " " + str(res)
 
-# All roads
-os.system("osmfilter country.o5m --keep='highway=*' > all_roads.osm")
-cmd = "ogr2ogr -overwrite -skipfailures -f 'ESRI Shapefile' -progress \
-        -sql 'SELECT osm_id, name, highway FROM lines \
-        WHERE highway IS NOT NULL' \
-        -lco ENCODING=UTF-8 all_roads.shp all_roads.osm"
-os.system(cmd)
+    # All roads
+    os.system("osmfilter area.o5m --keep='highway=*' > all_roads.osm")
+    cmd = "ogr2ogr -overwrite -skipfailures -f 'ESRI Shapefile' -progress \
+            -sql 'SELECT osm_id, name, highway FROM lines \
+            WHERE highway IS NOT NULL' \
+            -lco ENCODING=UTF-8 all_roads.shp all_roads.osm"
+    os.system(cmd)
 
-# Reproject
-proj_file = os.path.join(owd, proj[i])
-os.system("ogr2ogr -overwrite -s_srs EPSG:4326 -t_srs " + proj_file + " -f 'ESRI Shapefile' \
-        -lco ENCODING=UTF-8 all_roads_proj.shp all_roads.shp")
+    # Reproject
+    os.system("ogr2ogr -overwrite -s_srs EPSG:4326 -t_srs " + proj + " -f 'ESRI Shapefile' \
+            -lco ENCODING=UTF-8 all_roads_proj.shp all_roads.shp")
 
-# Rasterize
-# -te " + extent_str + " \
-cmd = "gdal_rasterize -tap -burn 1 \
-        -co 'COMPRESS=LZW' -co 'PREDICTOR=2' -co 'BIGTIFF=YES' -ot Byte \
-        -a_nodata 255 \
-        -tr " + res_str + " \
-        -l all_roads_proj all_roads_proj.shp all_roads.tif"
-os.system(cmd)
+    # Rasterize
+    # -te " + extent_str + " \
+    cmd = "gdal_rasterize -tap -burn 1 \
+            -co 'COMPRESS=LZW' -co 'PREDICTOR=2' -co 'BIGTIFF=YES' -ot Byte \
+            -a_nodata 255 \
+            -tr " + res_str + " \
+            -l all_roads_proj all_roads_proj.shp all_roads.tif"
+    os.system(cmd)
+
+# Loop on areas of interest
+for i in range(5):
+    planet = os.path.join(owd, "planet-170911.osm.pbf")
+    proj = os.path.join(owd, proj[i])
+    roads_osm(planet, area[i], extent[i], proj, 30)
 
 # End
