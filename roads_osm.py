@@ -52,46 +52,49 @@ def roads_osm(planet, area, extent, proj, res):
 
     """
 
-    # Message
-    print("Roads from OSM")
-
     # New directory for results
     results_dir = "results_" + area
+    print("Create directory: " + results_dir)
     os.makedirs(results_dir)
     os.chdir(results_dir)
 
     # Call to osmconvert with box
     box = ",".join(map(str, extent))
-    os.system("osmconvert " + planet + " -b=" + box + " -o=area.o5m")
+    print("Convert OSM data with box: " + box)
+    os.system("osmconvert " + planet + " -b=" + box + " -o=area.o5m -v")
 
     # Resolution as string
     res_str = str(res) + " " + str(res)
 
-    # All roads
-    os.system("osmfilter area.o5m --keep='highway=*' > all_roads.osm")
+    # Extract roads
+    print("Extract roads from OSM data")
+    os.system("osmfilter area.o5m --keep='highway=*' -o=all_roads.osm -v")
     cmd = "ogr2ogr -overwrite -skipfailures -f 'ESRI Shapefile' -progress \
-            -sql 'SELECT osm_id, name, highway FROM lines \
-            WHERE highway IS NOT NULL' \
-            -lco ENCODING=UTF-8 all_roads.shp all_roads.osm"
+           -sql 'SELECT osm_id, name, highway FROM lines \
+           WHERE highway IS NOT NULL' \
+           -lco ENCODING=UTF-8 all_roads.shp all_roads.osm"
     os.system(cmd)
 
     # Reproject
+    print("Reproject road vector data")
     os.system("ogr2ogr -overwrite -s_srs EPSG:4326 -t_srs " + proj + " -f 'ESRI Shapefile' \
-            -lco ENCODING=UTF-8 all_roads_proj.shp all_roads.shp")
+               -progress \
+               -lco ENCODING=UTF-8 all_roads_proj.shp all_roads.shp")
 
     # Rasterize
-    # -te " + extent_str + " \
+    print("Rasterize road vector data")
     cmd = "gdal_rasterize -tap -burn 1 \
-            -co 'COMPRESS=LZW' -co 'PREDICTOR=2' -co 'BIGTIFF=YES' -ot Byte \
-            -a_nodata 255 \
-            -tr " + res_str + " \
-            -l all_roads_proj all_roads_proj.shp all_roads.tif"
+           -co 'COMPRESS=LZW' -co 'PREDICTOR=2' -co 'BIGTIFF=YES' -ot Byte \
+           -a_nodata 255 \
+           -tr " + res_str + " \
+           -l all_roads_proj all_roads_proj.shp all_roads.tif"
     os.system(cmd)
 
 # Loop on areas of interest
 for i in range(5):
-    planet = os.path.join(owd, "planet-170911.osm.pbf")
-    proj = os.path.join(owd, proj[i])
-    roads_osm(planet, area[i], extent[i], proj, 30)
+    i = 1
+    planet = os.path.join(owd, "planet-latest.osm.pbf")
+    projection = os.path.join(owd, proj[i])
+    roads_osm(planet, area[i], extent[i], projection, 30)
 
 # End
