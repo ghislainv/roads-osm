@@ -31,7 +31,8 @@ owd = os.getcwd()
 # Download planet data from OpenStreetMap (version of 11/09/2017)
 # url = "https://planet.osm.org/pbf/planet-170911.osm.pbf"
 # urllib.urlretrieve(url, "planet.osm.pbf")
-# os.system("wget https://planet.osm.org/pbf/planet-170911.osm.pbf")
+if os.path.isfile("planet-170911.osm.pbf") is False:
+    os.system("wget https://planet.osm.org/pbf/planet-170911.osm.pbf")
 
 
 # Function roads_osm
@@ -91,10 +92,10 @@ def roads_osm(planet, area, extent, proj, res):
     os.system(cmd)
 
 # Loop on areas of interest
-for i in range(5):
-    i = 1
-    planet = os.path.join(owd, "planet-latest.osm.pbf")
-    projection = os.path.join(owd, proj[i])
-    roads_osm(planet, area[i], extent[i], projection, 30)
+# for i in range(5):
+i = 2
+planet = os.path.join(owd, "planet-170911.osm.pbf")
+projection = os.path.join(owd, proj[i])
+roads_osm(planet, area[i], extent[i], projection, 30)
 
 # End
