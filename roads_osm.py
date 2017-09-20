@@ -31,7 +31,28 @@ owd = os.getcwd()
 # Download planet data from OpenStreetMap (version of 11/09/2017)
 # url = "https://planet.osm.org/pbf/planet-170911.osm.pbf"
 # urllib.urlretrieve(url, "planet.osm.pbf")
-# os.system("wget https://planet.osm.org/pbf/planet-170911.osm.pbf")
+if os.path.isfile("planet-170911.osm.pbf") is False:
+    os.system("wget https://planet.osm.org/pbf/planet-170911.osm.pbf")
+
+
+def _mkdir(newdir):
+    """works the way a good mkdir should :)
+    - already exists, silently complete
+    - regular file in the way, raise an exception
+    - parent directory(ies) does not exist, make them as well
+    """
+    if os.path.isdir(newdir):
+        pass
+    elif os.path.isfile(newdir):
+        raise OSError("a file with the same name as the desired "
+                      "dir, '%s', already exists." % newdir)
+    else:
+        head, tail = os.path.split(newdir)
+        if head and not os.path.isdir(head):
+            _mkdir(head)
+        # print "_mkdir %s" % repr(newdir)
+        if tail:
+            os.mkdir(newdir)
 
 
 # Function roads_osm
@@ -55,31 +76,31 @@ def roads_osm(planet, area, extent, proj, res):
     # New directory for results
     results_dir = "results_" + area
     # print("Create directory: " + results_dir)
-    os.makedirs(results_dir)
+    _mkdir(results_dir)
     os.chdir(results_dir)
 
     # Call to osmconvert with box
-    # box = ",".join(map(str, extent))
-    # print("Convert OSM data with box: " + box)
-    # os.system("osmconvert " + planet + " -b=" + box + " -o=area.o5m -v")
+    box = ",".join(map(str, extent))
+    print("Convert OSM data with box: " + box)
+    os.system("osmconvert " + planet + " -b=" + box + " -o=area.o5m -v")
 
     # Resolution as string
     res_str = str(res) + " " + str(res)
 
     # Extract roads
-    # print("Extract roads from OSM data")
-    # os.system("osmfilter area.o5m --keep='highway=*' -o=all_roads.osm -v")
-    # cmd = "ogr2ogr -overwrite -skipfailures -f 'ESRI Shapefile' -progress \
-    #        -sql 'SELECT osm_id, name, highway FROM lines \
-    #        WHERE highway IS NOT NULL' \
-    #        -lco ENCODING=UTF-8 all_roads.shp all_roads.osm"
-    # os.system(cmd)
+    print("Extract roads from OSM data")
+    os.system("osmfilter area.o5m --keep='highway=*' -o=all_roads.osm -v")
+    cmd = "ogr2ogr -overwrite -skipfailures -f 'ESRI Shapefile' -progress \
+           -sql 'SELECT osm_id, name, highway FROM lines \
+           WHERE highway IS NOT NULL' \
+           -lco ENCODING=UTF-8 all_roads.shp all_roads.osm"
+    os.system(cmd)
 
     # Reproject
-    # print("Reproject road vector data")
-    # os.system("ogr2ogr -overwrite -s_srs EPSG:4326 -t_srs " + proj + " -f 'ESRI Shapefile' \
-    #            -progress \
-    #            -lco ENCODING=UTF-8 all_roads_proj.shp all_roads.shp")
+    print("Reproject road vector data")
+    os.system("ogr2ogr -overwrite -s_srs EPSG:4326 -t_srs " + proj + " -f 'ESRI Shapefile' \
+               -progress \
+               -lco ENCODING=UTF-8 all_roads_proj.shp all_roads.shp")
 
     # Rasterize
     print("Rasterize road vector data")
@@ -94,7 +115,7 @@ def roads_osm(planet, area, extent, proj, res):
 # Loop on areas of interest
 # for i in range(5):
 i = 2
-planet = os.path.join(owd, "planet-latest.osm.pbf")
+planet = os.path.join(owd, "planet-170911.osm.pbf")
 projection = os.path.join(owd, proj[i])
 roads_osm(planet, area[i], extent[i], projection, 30)
 
