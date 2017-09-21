@@ -35,6 +35,26 @@ if os.path.isfile("planet-170911.osm.pbf") is False:
     os.system("wget https://planet.osm.org/pbf/planet-170911.osm.pbf")
 
 
+def _mkdir(newdir):
+    """works the way a good mkdir should :)
+    - already exists, silently complete
+    - regular file in the way, raise an exception
+    - parent directory(ies) does not exist, make them as well
+    """
+    if os.path.isdir(newdir):
+        pass
+    elif os.path.isfile(newdir):
+        raise OSError("a file with the same name as the desired "
+                      "dir, '%s', already exists." % newdir)
+    else:
+        head, tail = os.path.split(newdir)
+        if head and not os.path.isdir(head):
+            _mkdir(head)
+        # print "_mkdir %s" % repr(newdir)
+        if tail:
+            os.mkdir(newdir)
+
+
 # Function roads_osm
 def roads_osm(planet, area, extent, proj, res):
     """Function to extract roads from OpenStreetMap planet data and
@@ -55,8 +75,8 @@ def roads_osm(planet, area, extent, proj, res):
 
     # New directory for results
     results_dir = "results_" + area
-    print("Create directory: " + results_dir)
-    os.makedirs(results_dir)
+    # print("Create directory: " + results_dir)
+    _mkdir(results_dir)
     os.chdir(results_dir)
 
     # Call to osmconvert with box
@@ -85,7 +105,8 @@ def roads_osm(planet, area, extent, proj, res):
     # Rasterize
     print("Rasterize road vector data")
     cmd = "gdal_rasterize -tap -burn 1 \
-           -co 'COMPRESS=LZW' -co 'PREDICTOR=2' -co 'BIGTIFF=YES' -ot Byte \
+           -co 'COMPRESS=LZW' -co 'PREDICTOR=2' -co 'BIGTIFF=YES' \
+           -ot Byte \
            -a_nodata 255 \
            -tr " + res_str + " \
            -l all_roads_proj all_roads_proj.shp roads_" + area + ".tif"
