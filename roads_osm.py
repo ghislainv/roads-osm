@@ -16,8 +16,8 @@ import os
 # Areas of interest
 area = ["Africa", "Asia", "Australia", "Mexico", "South_America"]
 # Well Known Text (WKT) projection definition
-proj = ["proj102022.prj", "proj102028.prj", "proj6643.prj",
-        "proj102008.prj", "proj102033.prj"]
+proj = ["proj/proj102022.prj", "proj/proj102028.prj", "proj/proj102028.prj",
+        "proj/proj102033.prj", "proj/proj102033.prj"]
 # Extents
 ext_Africa = (-18, -27, 52, 16)
 ext_Asia = (68, -16, 145, 29)
@@ -33,6 +33,8 @@ owd = os.getcwd()
 # urllib.urlretrieve(url, "planet.osm.pbf")
 if os.path.isfile("planet-170911.osm.pbf") is False:
     os.system("wget https://planet.osm.org/pbf/planet-170911.osm.pbf")
+# OSM planet file
+planet = os.path.join(owd, "planet-170911.osm.pbf")
 
 
 def _mkdir(newdir):
@@ -74,18 +76,15 @@ def roads_osm(planet, area, extent, proj, res):
     """
 
     # New directory for results
-    results_dir = "results_" + area
-    # print("Create directory: " + results_dir)
+    results_dir = "results/" + area
+    print("Create directory: " + results_dir)
     _mkdir(results_dir)
-    os.chdir(results_dir)
+    os.chdir(os.path.join(owd, results_dir))
 
     # Call to osmconvert with box
     box = ",".join(map(str, extent))
     print("Convert OSM data with box: " + box)
     os.system("osmconvert " + planet + " -b=" + box + " -o=area.o5m -v")
-
-    # Resolution as string
-    res_str = str(res) + " " + str(res)
 
     # Extract roads
     print("Extract roads from OSM data")
@@ -102,6 +101,9 @@ def roads_osm(planet, area, extent, proj, res):
                -progress \
                -lco ENCODING=UTF-8 all_roads_proj.shp all_roads.shp")
 
+    # Resolution as string
+    res_str = str(res) + " " + str(res)
+
     # Rasterize
     print("Rasterize road vector data")
     cmd = "gdal_rasterize -tap -burn 1 \
@@ -113,10 +115,8 @@ def roads_osm(planet, area, extent, proj, res):
     os.system(cmd)
 
 # Loop on areas of interest
-# for i in range(5):
-i = 2
-planet = os.path.join(owd, "planet-170911.osm.pbf")
-projection = os.path.join(owd, proj[i])
-roads_osm(planet, area[i], extent[i], projection, 30)
+for i in range(5):
+    projection = os.path.join(owd, proj[i])
+    roads_osm(planet, area[i], extent[i], projection, 30)
 
 # End
