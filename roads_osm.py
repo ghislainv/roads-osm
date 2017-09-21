@@ -88,7 +88,7 @@ def roads_osm(planet, area, extent, proj, res):
            -co 'COMPRESS=LZW' -co 'PREDICTOR=2' -co 'BIGTIFF=YES' -ot Byte \
            -a_nodata 255 \
            -tr " + res_str + " \
-           -l all_roads_proj all_roads_proj.shp all_roads.tif"
+           -l all_roads_proj all_roads_proj.shp roads_" + area + ".tif"
     os.system(cmd)
 
 # Loop on areas of interest
