@@ -19,4 +19,4 @@ Resolution: 30m. Format: GeoTIFF. Data type:Byte. No-data value: 255.
 ## Download
 
 Rasters of roads are available on Figshare:
-\[Roadless Forest project](https://figshare.com/account/home#/projects/24577)\].
+[Roadless Forest project](https://figshare.com/account/home#/projects/24577).
